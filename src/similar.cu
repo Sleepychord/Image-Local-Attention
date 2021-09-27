@@ -82,7 +82,7 @@ torch::Tensor similar_cuda_backward(
     const int width_loc = x_loc.size(3);
     const int per_channel_loc = height_loc * width_loc;
     const int per_input_loc = per_channel_loc * channels_loc;
-    AT_ASSERTM(batch % batch_loc == 0, "cannot use auto expand");
+    AT_ASSERTM(batch == batch_loc, "cannot use auto expand");
     AT_ASSERTM(height % height_loc == 0, "height cannot be divided exactly");
     AT_ASSERTM(width % width_loc == 0, "width cannot be divided exactly");
     const int ah = height / height_loc;
@@ -118,32 +118,24 @@ torch::Tensor similar_cuda_backward(
     } else{ // x is ori
         const torch::Tensor & x = x_ori;
         auto grad_inp = torch::empty({batch_loc, channels_loc, height_loc, width_loc}, x.options());
-        int start_inp = 0, start_inp_loc = 0;
-        for (int j = 0; j < batch_loc; ++j) {
-            bool is_accumulate = false;
-            for (int i = 0; i < batch / batch_loc; ++i) {
-                auto grad_out_row = grad_out.select(0, i + j * batch / batch_loc);
+        
                 AT_DISPATCH_FLOATING_TYPES_AND_HALF(x.scalar_type(), "similar_cuda_backward_loc", 
                 ([&] {
                         f_ck2c_loc<scalar_t, float>(
                                 at::cuda::getCurrentCUDAStream(),
-                                x.data_ptr<scalar_t>() + start_inp,
-                                grad_out_row.data_ptr<scalar_t>(),
+                                x.data_ptr<scalar_t>(),
+                                grad_out.data_ptr<scalar_t>(),
                                 kH, kW, rH, rW,
                                 patch, channels,
                                 height_loc, width_loc,
-                                per_channel_loc, per_input_loc,
-                                grad_inp.data_ptr<scalar_t>() + start_inp_loc,
-                                is_accumulate, ah, aw
+                                per_channel_loc, per_input_loc, batch,
+                                grad_inp.data_ptr<scalar_t>(),
+                                false, ah, aw
                         );
                 }
                 )
                 );
-                start_inp += per_input;
-                is_accumulate = true;
-            }
-            start_inp_loc += per_input_loc;
-        }
+                
         return grad_inp;
     }
     

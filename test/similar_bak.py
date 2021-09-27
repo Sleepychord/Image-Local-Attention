@@ -114,8 +114,8 @@ def test_efficiency_forward(h, w, c, kh, kw, casual_mask=False):
     
 def test_efficiency_backward(h, w, c, kh, kw, casual_mask=False):
 
-    x = torch.rand(20, c, h, w).cuda().half()
-    y = torch.rand(20, c, h, w).cuda().half()
+    x = torch.rand(40, c, h, w).cuda().half()
+    y = torch.rand(40, c, h, w).cuda().half()
     x.requires_grad_()
     y.requires_grad_()
 

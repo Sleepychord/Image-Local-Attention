@@ -109,8 +109,8 @@ __global__ void ck2c_ori(
 
 template<typename dt, typename dtc>
 __global__ void ck2c_loc(
-        const dt *x_ori,
-        const dt *x_weight,
+        const dt *x_ori0,
+        const dt *x_weight0,
         const int kH,
         const int kW,
         const int rH,
@@ -120,7 +120,8 @@ __global__ void ck2c_loc(
         const int width,
         const int per_channel,
         const int per_inp,
-        dt *y,
+        const int batch_size,
+        dt *y0,
         const bool is_accumulate,
         const int ah=1,
         const int aw=1
@@ -129,7 +130,13 @@ __global__ void ck2c_loc(
     // x_weight: {h, w, k^2}
     // y: {c, h, w}
     const int per_channel_ori = per_channel * aw * ah;
-    KERNEL_LOOP1d(index, per_inp) {
+    KERNEL_LOOP1d(index0, batch_size * per_inp) {
+        const int index = index0 % per_inp;
+        const int batch_idx = index0 / per_inp;
+        const dt *x_ori = x_ori0 + batch_idx * per_inp * aw * ah;
+        const dt *x_weight = x_weight0 + batch_idx * per_channel_ori * patch;
+        dt *y = y0 + (index0 - index);
+
         const int index_ = index % per_channel;
         const int w_ori = index_ % width + rW;
         const int h_ori = index_ / width + rH;
@@ -148,12 +155,7 @@ __global__ void ck2c_loc(
                             __ldg(x_weight + (indexW + dh * width * aw + dw) * patch + indexK));
             }
         }
-        if (is_accumulate) {
-            y[index] += static_cast<dt> (val);
-        }
-        else {
-            y[index] = static_cast<dt> (val);
-        }
+        y[index] = static_cast<dt> (val);
     }
 }
 
@@ -224,6 +226,7 @@ void f_ck2c_loc(
         const int width,
         const int per_channel,
         const int per_inp,
+        const int batch_size,
         dt *y,
         const bool is_accumulate, const int ah, const int aw
         ) {
@@ -231,6 +234,6 @@ void f_ck2c_loc(
             x_ori, x_weight,
                     kH, kW, rH, rW,
                     patch, height, width,
-                    per_channel, per_inp,
+                    per_channel, per_inp, batch_size,
                     y, is_accumulate, ah, aw);
 }

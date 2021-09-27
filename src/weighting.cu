@@ -103,23 +103,23 @@ torch::Tensor weighting_cuda_backward_ori(
         for (int i=0; i<batch / batch_ori; ++i) {
             auto grad_out_row = grad_out.select(0, i + j * batch / batch_ori);
             
-            AT_DISPATCH_FLOATING_TYPES_AND_HALF(x_weight.scalar_type(), "weighting_cuda_backward_ori", 
-                ([&] {
-                    f_ck2c_loc<scalar_t, float> (
-                            at::cuda::getCurrentCUDAStream(),
-                            grad_out_row.data_ptr<scalar_t>(),
-                            x_weight.data_ptr<scalar_t>() + start_out,
-                            kH, kW, rH, rW,
-                            patch, channels,
-                            height_ori, width_ori,
-                            per_channel_ori, per_input_ori,
-                            grad_ori.data_ptr<scalar_t>() + start_inp,
-                            is_accumulate,
-                            ah, aw
-                    );
-                }
-                )
-                );
+            // AT_DISPATCH_FLOATING_TYPES_AND_HALF(x_weight.scalar_type(), "weighting_cuda_backward_ori", 
+            //     ([&] {
+            //         f_ck2c_loc<scalar_t, float> (
+            //                 at::cuda::getCurrentCUDAStream(),
+            //                 grad_out_row.data_ptr<scalar_t>(),
+            //                 x_weight.data_ptr<scalar_t>() + start_out,
+            //                 kH, kW, rH, rW,
+            //                 patch, channels,
+            //                 height_ori, width_ori,
+            //                 per_channel_ori, per_input_ori,
+            //                 grad_ori.data_ptr<scalar_t>() + start_inp,
+            //                 is_accumulate,
+            //                 ah, aw
+            //         );
+            //     }
+            //     )
+            //     );
             start_out += per_output;
             is_accumulate = true;
         }
