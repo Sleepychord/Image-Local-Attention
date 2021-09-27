@@ -91,29 +91,23 @@ torch::Tensor similar_cuda_backward(
     if (is_ori){ // x is loc
         const torch::Tensor & x = x_loc;
         auto grad_inp = torch::empty({batch, channels, height, width}, x.options());
-        int start_inp = 0, start_inp_loc = 0;
-        for (int j = 0; j < batch_loc; ++j) {
-            for (int i = 0; i < batch / batch_loc; ++i) {
-                auto grad_out_row = grad_out.select(0, i + j * batch / batch_loc);
+        
                     AT_DISPATCH_FLOATING_TYPES_AND_HALF(x.scalar_type(), "similar_cuda_backward_ori", 
                     ([&] {
                             f_ck2c_ori<scalar_t, float>(
                                 at::cuda::getCurrentCUDAStream(),
-                                x.data_ptr<scalar_t>() + start_inp_loc,
-                                grad_out_row.data_ptr<scalar_t>(),
+                                x.data_ptr<scalar_t>() ,
+                                grad_out.data_ptr<scalar_t>(),
                                 kH, kW, rH, rW,
                                 patch, channels,
                                 height_loc, width_loc,
-                                per_channel_loc, per_input_loc,
-                                grad_inp.data_ptr<scalar_t>() + start_inp, ah, aw
+                                per_channel_loc, per_input_loc, batch,
+                                grad_inp.data_ptr<scalar_t>() , ah, aw
                             );
                     }
                     )
                     );
-                start_inp += per_input;
-            }
-            start_inp_loc += per_input_loc;
-        }
+
         return grad_inp;
     } else{ // x is ori
         const torch::Tensor & x = x_ori;

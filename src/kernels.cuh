@@ -59,8 +59,8 @@ __global__ void cc2k(
 
 template<typename dt, typename dtc>
 __global__ void ck2c_ori(
-        const dt *x_loc,
-        const dt *x_weight,
+        const dt *x_loc0,
+        const dt *x_weight0,
         const int kH,
         const int kW,
         const int rH,
@@ -70,7 +70,8 @@ __global__ void ck2c_ori(
         const int width,
         const int per_channel,
         const int per_inp,
-        dt *y,
+        const int batch_size,
+        dt *y0,
         const int ah=1,
         const int aw=1
 ) {
@@ -78,7 +79,13 @@ __global__ void ck2c_ori(
     // x_weight: {h, w, k^2}
     // y: {c, h, w}
     const int per_channel_ori = per_channel * aw * ah;
-    KERNEL_LOOP1d(index_raw, per_inp*aw*ah) {
+    KERNEL_LOOP1d(index_raw0, batch_size * per_inp*aw*ah) {
+        const int index_raw = index_raw0 % per_inp*aw*ah;
+        const int batch_idx = index_raw0 / (per_inp*aw*ah);
+        const dt *x_loc = x_loc0 + batch_idx * per_inp;
+        const dt *x_weight = x_weight0 + batch_idx * per_channel_ori * patch;
+        dt *y = y0 + batch_idx * per_inp;
+
         const int index = index_raw / (aw * ah);
         const int index_ = index % per_channel;
 
@@ -201,12 +208,13 @@ void f_ck2c_ori(
         const int width,
         const int per_channel,
         const int per_inp,
+        const int batch_size,
         dt *y, const int ah, const int aw) {
     ck2c_ori<dt, dtc> <<< GET_BLOCKS(min(per_inp, MAX_PIXELS_3d)), CUDA_NUM_THREADS, 0, stream >>> (
             x_loc, x_weight,
                     kH, kW, rH, rW,
                     patch, height, width,
-                    per_channel, per_inp,
+                    per_channel, per_inp, batch_size,
                     y, ah, aw);
 
 }

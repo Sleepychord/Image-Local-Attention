@@ -34,30 +34,30 @@ torch::Tensor weighting_cuda_forward(
     const int per_output = per_channel * patch;
     auto output = torch::empty({batch, channels, height, width}, x_ori.options());
 
-    int start_inp = 0, start_out = 0, start_inp_ori = 0;
-    for (int j=0; j<batch_ori; ++j){
-        for (int i=0; i<batch / batch_ori; ++i) {
-            AT_DISPATCH_FLOATING_TYPES_AND_HALF(x_ori.scalar_type(), "weighting_cuda_forward", 
-                ([&] {
-                    f_ck2c_ori<scalar_t, float> (
-                            at::cuda::getCurrentCUDAStream(),
-                            x_ori.data_ptr<scalar_t>() + start_inp_ori,
-                            x_weight.data_ptr<scalar_t>() + start_out,
-                            kH, kW, rH, rW,
-                            patch, channels,
-                            height_ori, width_ori,
-                            per_channel_ori, per_input_ori,
-                            output.data_ptr<scalar_t>() + start_inp,
-                            ah, aw
-                    );
-                }
-                )
-                );
-            start_inp += per_input;
-            start_out += per_output;
-        }
-        start_inp_ori += per_input_ori;
-    }
+    // int start_inp = 0, start_out = 0, start_inp_ori = 0;
+    // for (int j=0; j<batch_ori; ++j){
+    //     for (int i=0; i<batch / batch_ori; ++i) {
+    //         AT_DISPATCH_FLOATING_TYPES_AND_HALF(x_ori.scalar_type(), "weighting_cuda_forward", 
+    //             ([&] {
+    //                 f_ck2c_ori<scalar_t, float> (
+    //                         at::cuda::getCurrentCUDAStream(),
+    //                         x_ori.data_ptr<scalar_t>() + start_inp_ori,
+    //                         x_weight.data_ptr<scalar_t>() + start_out,
+    //                         kH, kW, rH, rW,
+    //                         patch, channels,
+    //                         height_ori, width_ori,
+    //                         per_channel_ori, per_input_ori,
+    //                         output.data_ptr<scalar_t>() + start_inp,
+    //                         ah, aw
+    //                 );
+    //             }
+    //             )
+    //             );
+    //         start_inp += per_input;
+    //         start_out += per_output;
+    //     }
+    //     start_inp_ori += per_input_ori;
+    // }
 
     return output;
 }
