@@ -21,7 +21,7 @@ torch::Tensor similar_cuda_forward(
     const int width_loc = x_loc.size(3);
     const int per_channel_loc = height_loc * width_loc;
     const int per_input_loc = per_channel_loc * channels_loc;
-    AT_ASSERTM(batch % batch_loc == 0, "cannot use auto expand");
+    AT_ASSERTM(batch == batch_loc, "batch size should be same.");
     AT_ASSERTM(height % height_loc == 0, "height cannot be divided exactly");
     AT_ASSERTM(width % width_loc == 0, "width cannot be divided exactly");
     const int ah = height / height_loc;
@@ -35,28 +35,20 @@ torch::Tensor similar_cuda_forward(
     const int per_output = height * width * patch;
     auto output = torch::empty({batch, height, width, patch}, x_ori.options());
 
-    int start_inp = 0, start_out = 0, start_inp_loc = 0;
-    for (int j = 0; j < batch_loc; ++j){
-        for (int i = 0; i < batch / batch_loc; ++i) {
             AT_DISPATCH_FLOATING_TYPES_AND_HALF(x_ori.scalar_type(), "similar_cuda_forward", 
                 ([&] {
                         f_cc2k<scalar_t, float>(
                             at::cuda::getCurrentCUDAStream(),
-                            x_ori.data_ptr<scalar_t>() + start_inp,
-                            x_loc.data_ptr<scalar_t>() + start_inp_loc,
+                            x_ori.data_ptr<scalar_t>(),
+                            x_loc.data_ptr<scalar_t>(),
                             kH, kW, rH, rW,
                             patch, channels, height_loc, width_loc,
-                            per_channel_loc,
-                            output.data_ptr<scalar_t>() + start_out, ah, aw, true
+                            per_channel_loc, batch,
+                            output.data_ptr<scalar_t>(), ah, aw, true
                         );
                 }
                 )
             );
-            start_inp += per_input;
-            start_out += per_output;
-        }
-        start_inp_loc += per_input_loc;
-    }
 
     return output;
 }

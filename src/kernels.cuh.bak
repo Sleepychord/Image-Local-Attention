@@ -3,8 +3,8 @@
 
 template<typename dt, typename dtc>
 __global__ void cc2k(
-        const dt *x_ori0,
-        const dt *x_loc0,
+        const dt *x_ori,
+        const dt *x_loc,
         const int kH,
         const int kW,
         const int rH,
@@ -14,8 +14,7 @@ __global__ void cc2k(
         const int height,
         const int width,
         const int per_channel,
-        const int batch_size,
-        dt *y0,
+        dt *y,
         const int ah=1,
         const int aw=1,
         const int fill_neginf=false
@@ -23,12 +22,7 @@ __global__ void cc2k(
     // x_ori, x_loc: {c, h, w}
     // y: {h, w, k^2}
     const int per_channel_ori = per_channel * aw * ah;
-    KERNEL_LOOP1d(index_raw0, batch_size * per_channel_ori * patch){
-        const int batch_idx = index_raw0 / (per_channel_ori * patch);
-        const dt *x_ori = x_ori0 + batch_idx * per_channel_ori * channels;
-        const dt *x_loc = x_loc0 + batch_idx * per_channel * channels;
-        dt *y = y0 + (per_channel_ori * patch) * batch_idx;
-        const int index_raw = index_raw0 % (per_channel_ori * patch);
+    KERNEL_LOOP1d(index_raw, per_channel_ori * patch){
         const int indexO = index_raw / patch / (aw * ah);
         const int indexK = index_raw % patch;
 
@@ -40,6 +34,7 @@ __global__ void cc2k(
         const int w_ori = indexO % width - rW;
         const int h_ori = indexO / width - rH;
 
+        // KERNEL_LOOP(indexK, patch) {
             const int w = w_ori + indexK % kW;
             const int h = h_ori + indexK / kW;
             dtc val = dtc(0);
@@ -54,6 +49,7 @@ __global__ void cc2k(
                 }
             } else if (fill_neginf) val = dtc(-10000);
             y[idx_seq * patch + indexK] = static_cast<dt> (val);
+        // }
     }
 }
 
@@ -174,13 +170,12 @@ void f_cc2k(
         const int height,
         const int width,
         const int per_channel,
-        const int batch_size,
         dt *y, const int ah, const int aw, const bool fill_neginf=false) {
     cc2k<dt, dtc> <<< min(per_channel, MAX_PIXELS_2d), CUDA_NUM_THREADS, 0, stream >>> (
             x_ori, x_loc,
                     kH, kW, rH, rW,
                     patch, channels,
-                    height, width, per_channel, batch_size,
+                    height, width, per_channel,
                     y, ah, aw,  fill_neginf);
 }
 
