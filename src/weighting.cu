@@ -12,7 +12,8 @@ torch::Tensor weighting_cuda_forward(
     const int channels = x_ori.size(1);
     const int height = x_weight.size(1);
     const int width = x_weight.size(2);
-    AT_ASSERTM(!casual_mask || (kH & 1 == 1 && kW & 1 == 1), "If casual_mask is true, the kernel size must be odd!");
+    AT_ASSERTM(!casual_mask || ((kH & 1) == 1 && (kW & 1) == 1),
+               "If casual_mask is true, the kernel size must be odd!");
 
     const int batch_ori = x_ori.size(0);
     const int channels_ori = x_ori.size(1);
