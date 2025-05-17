@@ -9,7 +9,8 @@ torch::Tensor similar_cuda_forward(
 ) {
     TypeCheck(x_ori);
     TypeCheck(x_loc);
-    AT_ASSERTM(!casual_mask || (kH & 1 == 1 && kW & 1 == 1), "If casual_mask is true, the kernel size must be odd!");
+    AT_ASSERTM(!casual_mask || ((kH & 1) == 1 && (kW & 1) == 1),
+               "If casual_mask is true, the kernel size must be odd!");
     const int batch = x_ori.size(0);
     const int channels = x_ori.size(1);
     const int height = x_ori.size(2);
